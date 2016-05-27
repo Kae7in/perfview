@@ -36,6 +36,7 @@ namespace Microsoft.Diagnostics.Tracing
         private List<Tuple<ZipArchiveEntry, CtfMetadata>> _channels;
         private TraceEventNativeMethods.EVENT_RECORD* _header;
         private Dictionary<string, ETWMapping> _eventMapping;
+        private Dictionary<int, string> _processes = new Dictionary<int, string>();
 
 #if DEBUG
         private StreamWriter _debugOut;
@@ -482,6 +483,7 @@ namespace Microsoft.Diagnostics.Tracing
                 CtfEventHeader header = entry.Current;
                 CtfEvent evt = header.Event;
                 lastTimestamp = header.Timestamp;
+                _processes[header.Pid] = header.ProcessName;
 
 #if DEBUG
                 if (_debugOut != null)
@@ -547,6 +549,15 @@ namespace Microsoft.Diagnostics.Tracing
             _header->EventHeader.UserTime = 0;
 
             return _header;
+        }
+
+        internal override string ProcessName(int processID, long timeQPC)
+        {
+            string name;
+            if (!_processes.TryGetValue(processID, out name))
+                name = $"Process({processID.ToString("x")})";
+
+            return name;
         }
 
         private ETWMapping GetTraceEvent(CtfEvent evt)

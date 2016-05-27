@@ -71,6 +71,9 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
     {
         private Action<SchedulerProcessTraceData> _action;
         private static string[] _payloadNames;
+        
+
+        public int Tid { get { throw new NotImplementedException(); } }
 
         public SchedulerProcessTraceData(Action<SchedulerProcessTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
             : base(eventID, task, taskName, taskGuid, opcode, opcodeName, providerGuid, providerName)
@@ -124,7 +127,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             Prefix(sb);
             XmlAttrib(sb, "ProcessID", ProcessID);
-            XmlAttrib(sb, "ImageFileName", ImageFileName);
+            XmlAttrib(sb, "ProcessName", ProcessName);
             sb.Append("/>");
             return sb;
         }

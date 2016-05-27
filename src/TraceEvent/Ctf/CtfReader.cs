@@ -37,6 +37,7 @@ namespace Microsoft.Diagnostics.Tracing.Ctf
         private CtfMetadata _metadata;
         private CtfStream _streamDefinition;
         CtfEventHeader _header = new CtfEventHeader();
+        public Dictionary<int, string> _processes = new Dictionary<int, string>();
 
         private bool _eof;
         private GCHandle _handle;
@@ -148,25 +149,35 @@ namespace Microsoft.Diagnostics.Tracing.Ctf
                     result = ReadStruct(eventContext);
                     _header.Pid = eventContext.GetFieldValue<int>(result, "_vpid");
                     _header.Tid = eventContext.GetFieldValue<int>(result, "_vtid");
-
-                    int procnameIndex = eventContext.GetFieldIndex("_procname");
-                    object[] procname = (object[])(result[procnameIndex]);
-                    processName.Clear();
-                    for (int i = 0; i < 17; i++)
+                    
+                    if (IsProcessStartEvent(evt) || !_processes.TryGetValue(_header.Pid, out _header.ProcessName))
                     {
-                        sbyte b = (sbyte)procname[i];
-                        if (b == 0)
-                            break;
+                        int procnameIndex = eventContext.GetFieldIndex("_procname");
+                        object[] procname = (object[])(result[procnameIndex]);
+                        processName.Clear();
+                        for (int i = 0; i < 17; i++)
+                        {
+                            sbyte b = (sbyte)procname[i];
+                            if (b == 0)
+                                break;
 
-                        processName.Append((char)b);
+                            processName.Append((char)b);
+                        }
+
+                        string name = processName.ToString();
+                        _header.ProcessName = name;
+                        _processes[_header.Pid] = name;
                     }
-
-                    _header.ProcessName = processName.ToString();
                 }
 
                 _readHeader = true;
                 yield return _header;
             }
+        }
+
+        private static bool IsProcessStartEvent(CtfEvent evt)
+        {
+            return evt.Name == "sched_process_exec";
         }
 
         public void ResetBuffer()
